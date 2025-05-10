@@ -272,6 +272,26 @@ fn can_render_inverse_sections_for_empty_strs() {
 }
 
 #[test]
+fn can_render_dot_inside_sections_for_strs() {
+    #[derive(Content)]
+    struct Post<'a> {
+        tags: &'a [&'a str],
+    }
+
+    let tpl = Template::new("<ul>{{#tags}}\
+                                 <li><a href=\"/post/tag/{{.}}\">{{.}}</a></li>{{/tags}}\
+                             </ul>").unwrap();
+
+    let rendered = tpl.render(&Post { tags: &["one", "two", "three"] });
+
+    assert_eq!(rendered, "<ul>\
+                              <li><a href=\"/post/tag/one\">one</a></li>\
+                              <li><a href=\"/post/tag/two\">two</a></li>\
+                              <li><a href=\"/post/tag/three\">three</a></li>\
+                          </ul>");
+}
+
+#[test]
 fn can_render_lists_from_slices() {
     #[derive(Content)]
     struct Article<'a> {

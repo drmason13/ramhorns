@@ -182,6 +182,47 @@ impl Content for str {
     fn render_unescaped<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
         encoder.write_unescaped(self)
     }
+
+    /// Supports `{{.}}` syntax to render the string inside a section
+    #[inline]
+    fn render_field_escaped<E: Encoder>(
+        &self,
+        _hash: u64,
+        name: &str,
+        encoder: &mut E,
+    ) -> Result<bool, E::Error> {
+        match name {
+            "." => self.render_escaped(encoder).map(|_| true),
+            _ => Ok(false)
+        }
+    }
+
+    /// Supports `{{.}}` syntax to render the string inside a section
+    #[inline]
+    fn render_field_unescaped<E: Encoder>(
+        &self,
+        _hash: u64,
+        name: &str,
+        encoder: &mut E,
+    ) -> Result<bool, E::Error> {
+        match name {
+            "." => self.render_unescaped(encoder).map(|_| true),
+            _ => Ok(false)
+        }
+    }
+
+    #[inline]
+    fn render_section<C, E>(&self, section: Section<C>, encoder: &mut E) -> Result<(), E::Error>
+    where
+        C: ContentSequence,
+        E: Encoder,
+    {
+        if self.is_truthy() {
+            section.with(self).render(encoder)
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl Content for String {
@@ -203,6 +244,47 @@ impl Content for String {
     #[inline]
     fn render_unescaped<E: Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
         encoder.write_unescaped(self)
+    }
+
+    /// Supports `{{.}}` syntax to render the string inside a section
+    #[inline]
+    fn render_field_escaped<E: Encoder>(
+        &self,
+        _hash: u64,
+        name: &str,
+        encoder: &mut E,
+    ) -> Result<bool, E::Error> {
+        match name {
+            "." => self.render_escaped(encoder).map(|_| true),
+            _ => Ok(false)
+        }
+    }
+
+    /// Supports `{{.}}` syntax to render the string inside a section
+    #[inline]
+    fn render_field_unescaped<E: Encoder>(
+        &self,
+        _hash: u64,
+        name: &str,
+        encoder: &mut E,
+    ) -> Result<bool, E::Error> {
+        match name {
+            "." => self.render_unescaped(encoder).map(|_| true),
+            _ => Ok(false)
+        }
+    }
+
+    #[inline]
+    fn render_section<C, E>(&self, section: Section<C>, encoder: &mut E) -> Result<(), E::Error>
+    where
+        C: ContentSequence,
+        E: Encoder,
+    {
+        if self.is_truthy() {
+            section.with(self).render(encoder)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -403,10 +485,11 @@ impl<T: Content> Content for Vec<T> {
             .render_section(section, encoder)?;
         }
         #[cfg(not(feature = "indexes"))]
-        for item in self.iter() {
-            item.render_section(section, encoder)?;
+        {
+            for item in self.iter() {
+                item.render_section(section, encoder)?;
+            }
         }
-
         Ok(())
     }
 }
