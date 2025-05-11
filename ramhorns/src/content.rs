@@ -183,7 +183,7 @@ impl Content for str {
         encoder.write_unescaped(self)
     }
 
-    /// Supports `{{.}}` syntax to render the string inside a section
+    /// Supports implicit iterator (`{{.}}`) to render the string inside a section
     #[inline]
     fn render_field_escaped<E: Encoder>(
         &self,
@@ -197,7 +197,7 @@ impl Content for str {
         }
     }
 
-    /// Supports `{{.}}` syntax to render the string inside a section
+    /// Supports implicit iterator (`{{.}}`) to render the string inside a section
     #[inline]
     fn render_field_unescaped<E: Encoder>(
         &self,
@@ -211,6 +211,7 @@ impl Content for str {
         }
     }
 
+    /// Supports implicit iterator (`{{.}}`) to render the string within a section
     #[inline]
     fn render_section<C, E>(&self, section: Section<C>, encoder: &mut E) -> Result<(), E::Error>
     where
@@ -221,6 +222,29 @@ impl Content for str {
             section.with(self).render(encoder)
         } else {
             Ok(())
+        }
+    }
+
+    /// Theoretically supports implicit iterator inverse (`{{^.}}fallback{{/.}}`)
+    /// to render a fallback if the string is empty within a section.
+    ///
+    /// *NOTE*: if the item is not [`truthy`](Content::is_truthy)
+    /// most sequences won't display the section at all,
+    /// making this syntax unusable (bar custom implementations of `Content`).
+    fn render_field_inverse<C, E>(
+        &self,
+        _hash: u64,
+        name: &str,
+        section: Section<C>,
+        encoder: &mut E,
+    ) -> Result<bool, E::Error>
+    where
+        C: ContentSequence,
+        E: Encoder,
+    {
+        match name {
+            "." => self.render_inverse(section, encoder).map(|_| true),
+            _ => Ok(false),
         }
     }
 }
@@ -246,7 +270,7 @@ impl Content for String {
         encoder.write_unescaped(self)
     }
 
-    /// Supports `{{.}}` syntax to render the string inside a section
+    /// Supports implicit iterator (`{{.}}`) to render the string inside a section
     #[inline]
     fn render_field_escaped<E: Encoder>(
         &self,
@@ -260,7 +284,7 @@ impl Content for String {
         }
     }
 
-    /// Supports `{{.}}` syntax to render the string inside a section
+    /// Supports implicit iterator (`{{.}}`) to render the string inside a section
     #[inline]
     fn render_field_unescaped<E: Encoder>(
         &self,
@@ -274,6 +298,7 @@ impl Content for String {
         }
     }
 
+    /// Supports implicit iterator (`{{.}}`) to render the string inside a section
     #[inline]
     fn render_section<C, E>(&self, section: Section<C>, encoder: &mut E) -> Result<(), E::Error>
     where
@@ -284,6 +309,29 @@ impl Content for String {
             section.with(self).render(encoder)
         } else {
             Ok(())
+        }
+    }
+
+    /// Theoretically supports implicit iterator inverse (`{{^.}}fallback{{/.}}`)
+    /// to render a fallback if the string is empty within a section.
+    ///
+    /// *NOTE*: if the item is not [`truthy`](Content::is_truthy)
+    /// most sequences won't display the section at all,
+    /// making this syntax unusable (bar custom implementations of `Content`).
+    fn render_field_inverse<C, E>(
+        &self,
+        _hash: u64,
+        name: &str,
+        section: Section<C>,
+        encoder: &mut E,
+    ) -> Result<bool, E::Error>
+    where
+        C: ContentSequence,
+        E: Encoder,
+    {
+        match name {
+            "." => self.render_inverse(section, encoder).map(|_| true),
+            _ => Ok(false),
         }
     }
 }

@@ -272,7 +272,32 @@ fn can_render_inverse_sections_for_empty_strs() {
 }
 
 #[test]
-fn can_render_dot_inside_sections_for_strs() {
+fn can_render_inverse_sections_for_empty_strs_in_list() {
+    #[derive(Content)]
+    struct Person<'a> {
+        name: &'a str,
+        last: bool,
+    }
+
+    #[derive(Content)]
+    struct Wrapper<'a> {
+        people: &'a [Person<'a>],
+    }
+
+    let tpl = Template::new("{{#people}}Hello {{name}}{{^name}}Anonymous{{/name}}!{{^last}}, {{/last}}{{/people}}").unwrap();
+
+    let rendered = tpl.render(&Wrapper {
+        people: &[
+            Person { name: "Maciej", last: false },
+            Person { name: "", last: true }
+        ]
+    });
+
+    assert_eq!(rendered, "Hello Maciej!, Hello Anonymous!");
+}
+
+#[test]
+fn can_render_implicit_iterator_for_strs_list() {
     #[derive(Content)]
     struct Post<'a> {
         tags: &'a [&'a str],
@@ -289,6 +314,124 @@ fn can_render_dot_inside_sections_for_strs() {
                               <li><a href=\"/post/tag/two\">two</a></li>\
                               <li><a href=\"/post/tag/three\">three</a></li>\
                           </ul>");
+}
+
+#[test]
+fn cannot_render_implicit_iterator_for_single_list() {
+
+    let tpl = Template::new("<{{#.}} {{.}} {{/.}}>").unwrap();
+
+    let rendered = tpl.render(&["1", "2", "3"]);
+
+    assert_eq!(rendered, "<>");
+}
+
+#[test]
+fn cannot_render_implicit_iterator_for_nested_lists() {
+
+    let tpl = Template::new("{{#.}}<{{#.}} {{.}} {{/.}}>{{/.}}").unwrap();
+
+    let rendered = tpl.render(&[&["1", "2", "3"], &["4", "5", "6"],]);
+
+    assert_eq!(rendered, "");
+}
+
+#[test]
+fn cannot_render_implicit_iterator_for_arbitrary_content() {
+    #[derive(Content)]
+    struct Blog<'a> {
+        posts: &'a [Post<'a>],
+    }
+
+    #[derive(Content)]
+    struct Post<'a> {
+        tags: &'a [&'a str],
+        title: &'a str,
+        body: &'a str,
+    }
+
+    let tpl = Template::new("<h1>My Blog</h1>\
+                             <ul>{{#posts}}<li>{{.}}</li>{{/posts}}</ul>").unwrap();
+
+    let rendered = tpl.render(&Blog {
+        posts: &[
+            Post {
+                tags: &["one", "two", "three"],
+                title: "my post",
+                body: "hello and welcome...",
+            },
+            Post {
+                tags: &["one", "two"],
+                title: "my second post",
+                body: "yo",
+            }
+        ]
+    });
+
+    assert_eq!(rendered, "<h1>My Blog</h1>\
+                          <ul><li></li><li></li></ul>");
+}
+
+#[test]
+fn cannot_render_inverse_implicit_iterator_for_empty_strs() {
+    #[derive(Content)]
+    struct List<'a> {
+        items: &'a [&'a str],
+    }
+
+    // NOTE: This behavior *differs* from most implementations of mustache
+    // which would output: `oneEMPTYthree`
+    //
+    // empty strings are not rendered at all by their containers,
+    // so we don't see the `{{^.}}EMPTY{{/.}}` when rendering the empty string item below
+    // however, we do see it when rendering "one" and "three" and it will be hidden
+    let tpl = Template::new("{{#items}}{{^.}}EMPTY{{/.}}{{.}}{{/items}}").unwrap();
+
+    let rendered = tpl.render(&List { items: &["one", "", "three"] });
+
+    assert_eq!(rendered, "onethree");
+}
+
+#[test]
+fn cannot_render_implicit_iterator_section_for_strs() {
+    #[derive(Content)]
+    struct List<'a> {
+        items: &'a [&'a str],
+    }
+
+    let tpl = Template::new("{{#items}}{{#.}}Not Rendered{{/.}}{{/items}}").unwrap();
+
+    let rendered = tpl.render(&List { items: &["one", "", "three"] });
+
+    assert_eq!(rendered, "");
+}
+
+#[test]
+fn cannot_render_implicit_iterator_section_for_lists_of_strs() {
+
+    let tpl = Template::new("{{#.}}Hello {{.}}{{^.}}Anonymous{{/.}}! {{/.}}").unwrap();
+
+    let rendered = tpl.render(&["Maciej", ""]);
+
+    assert_eq!(rendered, "");
+}
+
+#[test]
+fn cannot_render_implicit_iterator_section_for_lists_of_derived_content() {
+    #[derive(Content)]
+    struct Person<'a> {
+        name: &'a str,
+        last: bool,
+    }
+
+    let tpl = Template::new("{{#.}}Hello {{name}}{{^name}}Anonymous{{/name}}!{{^last}}, {{/last}}{{/.}}").unwrap();
+
+    let rendered = tpl.render(&[
+        Person { name: "Maciej", last: false },
+        Person { name: "", last: true }
+    ]);
+
+    assert_eq!(rendered, "");
 }
 
 #[test]
