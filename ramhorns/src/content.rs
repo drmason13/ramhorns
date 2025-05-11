@@ -533,10 +533,8 @@ impl<T: Content> Content for Vec<T> {
             .render_section(section, encoder)?;
         }
         #[cfg(not(feature = "indexes"))]
-        {
-            for item in self.iter() {
-                item.render_section(section, encoder)?;
-            }
+        for item in self.iter() {
+            item.render_section(section, encoder)?;
         }
         Ok(())
     }

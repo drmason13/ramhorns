@@ -272,6 +272,20 @@ fn can_render_inverse_sections_for_empty_strs() {
 }
 
 #[test]
+fn can_render_implicit_iterator_fallback_for_empty_lists_of_strs() {
+    #[derive(Content)]
+    struct Post<'a> {
+        tags: &'a [&'a str],
+    }
+
+    let tpl = Template::new("{{^tags}}No tags! implicit iterator='{{.}}'{{/tags}}").unwrap();
+
+    let rendered = tpl.render(&Post { tags: &[] });
+
+    assert_eq!(rendered, "No tags! implicit iterator=''");
+}
+
+#[test]
 fn can_render_inverse_sections_for_empty_strs_in_list() {
     #[derive(Content)]
     struct Person<'a> {
